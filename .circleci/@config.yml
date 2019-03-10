@@ -1,0 +1,48 @@
+version: 2.1
+orbs:
+  orbs: circleci/orb-tools@8.3.0
+jobs:
+  verify:
+    docker:
+      - image: circleci/openjdk
+    steps:
+      - checkout
+      - jabba/setup
+      - jabba/install:
+          version: openjdk@1.9
+      - jabba/install:
+          version: openjdk@1.9
+      - jabba/use:
+          version: openjdk@1.9
+      - run:
+          command: |
+            java -version 2>&1 | grep -i openjdk
+            java -version 2>&1 | grep -i 'build 9'
+      - jabba/use:
+          version: openjdk@1.10
+      - run:
+          command: |
+            java -version 2>&1 | grep -i openjdk
+            java -version 2>&1 | grep -i 'build 10'
+      - run: ls .jabba
+
+workflows:
+  default:
+    jobs:
+      - verify:
+          filters:
+            tags:
+              only: /.*/
+      - orbs/publish:
+          orb-path: .circleci/orbs/jabba.yml
+          orb-ref: ayte/jabba@$CIRCLE_TAG
+          publish-token-variable: CIRCLECI_TOKEN
+          requires:
+            - verify
+          context: circleci.com
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /\d+\.\d+\.\d+/
+

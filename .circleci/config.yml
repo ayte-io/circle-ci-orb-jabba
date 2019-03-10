@@ -1,0 +1,131 @@
+jobs:
+  verify:
+    docker:
+    - image: circleci/openjdk
+    steps:
+    - checkout
+    - jabba/setup
+    - jabba/install:
+        version: openjdk@1.9
+    - jabba/install:
+        version: openjdk@1.9
+    - jabba/use:
+        version: openjdk@1.9
+    - run:
+        command: |
+          java -version 2>&1 | grep -i openjdk
+          java -version 2>&1 | grep -i 'build 9'
+    - jabba/use:
+        version: openjdk@1.10
+    - run:
+        command: |
+          java -version 2>&1 | grep -i openjdk
+          java -version 2>&1 | grep -i 'build 10'
+    - run: ls .jabba
+orbs:
+  jabba:
+    commands:
+      install:
+        description: Installs specific JDK
+        parameters:
+          home:
+            default: ""
+            description: Jabba home directory
+            type: string
+          version:
+            description: Version to install
+            type: string
+        steps:
+        - setup
+        - run:
+            command: |
+              if [[ ! -z "<< parameters.home >>" ]]; then
+                export JABBA_HOME="<< parameters.home >>"
+              fi
+              jabba install "<< parameters.version >>"
+            name: 'Jabba: Install JDK << parameters.version >>'
+      setup:
+        description: Installs Jabba
+        parameters:
+          home:
+            default: .jabba
+            description: Jabba home directory
+            type: string
+        steps:
+        - run:
+            command: |
+              if type jabba > /dev/null 2>&1; then
+                exit 0
+              fi
+              export JABBA_HOME="$(realpath "<< parameters.home >>")"
+              curl -sL https://github.com/shyiko/jabba/raw/master/install.sh | bash && source "$JABBA_HOME/jabba.sh"
+              BASH_ENV=${BASH_ENV:-/tmp/bash.env}
+              if ! grep -q -e 'jabba.sh' "$BASH_ENV" > /dev/null 2>&1; then
+                if [[ ! -z "<< parameters.home >>" ]]; then
+                  echo "export JABBA_HOME=\"$JABBA_HOME\"" >> "$BASH_ENV"
+                fi
+                echo 'source "$JABBA_HOME/jabba.sh"' >> "$BASH_ENV"
+              fi
+            name: 'Jabba: Setup'
+      use:
+        description: Sets default JDK to specified version, isntalls it if absent
+        parameters:
+          home:
+            default: ""
+            description: Jabba home directory
+            type: string
+          version:
+            description: Version to set as current
+            type: string
+        steps:
+        - setup
+        - run:
+            command: |
+              if [[ ! -z "<< parameters.home >>" ]]; then
+                export JABBA_HOME="<< parameters.home >>"
+              fi
+              if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
+                jabba install "<< parameters.version >>"
+              fi
+            name: 'Jabba: Ensure JDK << parameters.version >> is installed'
+        - run:
+            command: |
+              if [[ ! -z "<< parameters.home >>" ]]; then
+                export JABBA_HOME="<< parameters.home >>"
+              fi
+              jabba alias default "<< parameters.version >>"
+            name: 'Jabba: Set current JDK to << parameters.version >>'
+    description: |
+      This orb controls [Jabba](https://github.com/shyiko/jabba) JVM version
+      manager, providing support for several JDKs in one job.
+
+      Basically all what's needed to use another JDK is just `jabba/use`
+      command with desired version, after which new JDK binaries will appear
+      on path.
+
+      By default, everything is stored under `.jabba` directory in project
+      workspace, so it's easily cacheable. If you don't like it, run
+      `jabba/setup` manually with desired home directory.
+    version: 2.1
+  orbs: circleci/orb-tools@8.3.0
+version: 2.1
+workflows:
+  default:
+    jobs:
+    - verify:
+        filters:
+          tags:
+            only: /.*/
+    - orbs/publish:
+        context: circleci.com
+        filters:
+          branches:
+            ignore: /.*/
+          tags:
+            only: /\d+\.\d+\.\d+/
+        orb-path: .circleci/orbs/jabba.yml
+        orb-ref: ayte/jabba@$CIRCLE_TAG
+        publish-token-variable: CIRCLECI_TOKEN
+        requires:
+        - verify
+

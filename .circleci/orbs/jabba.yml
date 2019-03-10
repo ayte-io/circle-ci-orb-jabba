@@ -1,0 +1,85 @@
+version: 2.1
+description: |
+  This orb controls [Jabba](https://github.com/shyiko/jabba) JVM version
+  manager, providing support for several JDKs in one job.
+
+  Basically all what's needed to use another JDK is just `jabba/use`
+  command with desired version, after which new JDK binaries will appear
+  on path.
+
+  By default, everything is stored under `.jabba` directory in project
+  workspace, so it's easily cacheable. If you don't like it, run
+  `jabba/setup` manually with desired home directory.
+commands:
+  setup:
+    description: Installs Jabba
+    parameters:
+      home:
+        description: Jabba home directory
+        type: string
+        default: .jabba
+    steps:
+      - run:
+          name: 'Jabba: Setup'
+          command: |
+            if type jabba > /dev/null 2>&1; then
+              exit 0
+            fi
+            export JABBA_HOME="$(realpath "<< parameters.home >>")"
+            curl -sL https://github.com/shyiko/jabba/raw/master/install.sh | bash && source "$JABBA_HOME/jabba.sh"
+            BASH_ENV=${BASH_ENV:-/tmp/bash.env}
+            if ! grep -q -e 'jabba.sh' "$BASH_ENV" > /dev/null 2>&1; then
+              if [[ ! -z "<< parameters.home >>" ]]; then
+                echo "export JABBA_HOME=\"$JABBA_HOME\"" >> "$BASH_ENV"
+              fi
+              echo 'source "$JABBA_HOME/jabba.sh"' >> "$BASH_ENV"
+            fi
+  install:
+    description: Installs specific JDK
+    parameters:
+      version:
+        description: Version to install
+        type: string
+      home:
+        description: Jabba home directory
+        type: string
+        default: ''
+    steps:
+      - setup
+      - run:
+          name: 'Jabba: Install JDK << parameters.version >>'
+          command: |
+            if [[ ! -z "<< parameters.home >>" ]]; then
+              export JABBA_HOME="<< parameters.home >>"
+            fi
+            jabba install "<< parameters.version >>"
+  use:
+    description: Sets default JDK to specified version, isntalls it if absent
+    parameters:
+      version:
+        description: Version to set as current
+        type: string
+      home:
+        description: Jabba home directory
+        type: string
+        default: ''
+    steps:
+      - setup
+      - run:
+          name: 'Jabba: Ensure JDK << parameters.version >> is installed'
+          command: |
+            if [[ ! -z "<< parameters.home >>" ]]; then
+              export JABBA_HOME="<< parameters.home >>"
+            fi
+            if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
+              jabba install "<< parameters.version >>"
+            fi
+      - run:
+          name: 'Jabba: Set current JDK to << parameters.version >>'
+          command: |
+            if [[ ! -z "<< parameters.home >>" ]]; then
+              export JABBA_HOME="<< parameters.home >>"
+            fi
+            jabba alias default "<< parameters.version >>"
+
+
