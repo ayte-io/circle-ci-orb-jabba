@@ -1,0 +1,41 @@
+version: 2.1
+commands:
+  setup:
+    description: Installs Jabba
+    steps:
+      - run:
+          name: Installing Jabba
+          command: curl -sL https://github.com/shyiko/jabba/raw/master/install.sh | bash && . ~/.jabba/jabba.sh
+  install:
+    description: Installs specific JDK
+    parameters:
+      version:
+        description: Version to install
+        type: string
+    steps:
+      - run:
+          name: Install JDK << parameters.version >>
+          command: |
+            source ~/.jabba/jabba.sh
+            jabba install "<< parameters.version >>"
+  use:
+    description: Sets default JDK to specified version, isntalls it if absent
+    parameters:
+      version:
+        description: Version to set as current
+        type: string
+    steps:
+      - run:
+          name: Ensure JDK << parameters.version >> is installed
+          command: |
+            source ~/.jabba/jabba.sh
+            if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
+              jabba install "<< parameters.version >>"
+            fi
+      - run:
+          name: Set current JDK to << parameters.version >>
+          command: |
+            source ~/.jabba/jabba.sh
+            jabba alias default << parameters.version >>
+
+

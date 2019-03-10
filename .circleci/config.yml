@@ -1,0 +1,87 @@
+jobs:
+  verify:
+    docker:
+    - image: circleci/openjdk
+    environment:
+      BASH_PROFILE: ~/.bashrc
+    steps:
+    - checkout
+    - jabba/setup
+    - jabba/install:
+        version: openjdk@1.9
+    - jabba/use:
+        version: openjdk@1.9
+    - run:
+        command: |
+          java -version 2>&1 | grep -i openjdk
+          java -version 2>&1 | grep -i 1.9
+    - jabba/use:
+        version: openjdk@1.10
+    - run:
+        command: |
+          java -version 2>&1 | grep -i openjdk
+          java -version 2>&1 | grep -i 1.10
+orbs:
+  jabba:
+    commands:
+      install:
+        description: Installs specific JDK
+        parameters:
+          version:
+            description: Version to install
+            type: string
+        steps:
+        - run:
+            command: |
+              source ~/.jabba/jabba.sh
+              jabba install "<< parameters.version >>"
+            name: Install JDK << parameters.version >>
+      setup:
+        description: Installs Jabba
+        steps:
+        - run:
+            command: curl -sL https://github.com/shyiko/jabba/raw/master/install.sh
+              | bash && . ~/.jabba/jabba.sh
+            name: Installing Jabba
+      use:
+        description: Sets default JDK to specified version, isntalls it if absent
+        parameters:
+          version:
+            description: Version to set as current
+            type: string
+        steps:
+        - run:
+            command: |
+              source ~/.jabba/jabba.sh
+              if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
+                jabba install "<< parameters.version >>"
+              fi
+            name: Ensure JDK << parameters.version >> is installed
+        - run:
+            command: |
+              source ~/.jabba/jabba.sh
+              jabba alias default << parameters.version >>
+            name: Set current JDK to << parameters.version >>
+    version: 2.1
+  orbs: circleci/orb-tools@8.3.0
+version: 2.1
+workflows:
+  default:
+    jobs:
+    - verify:
+        filters:
+          tags:
+            only: /.*/
+    - orbs/publish:
+        context: circleci.com
+        filters:
+          branches:
+            ignore: /.*/
+          tags:
+            only: /\d+\.\d+\.\d+/
+        orb-path: .circleci/orbs/jabba.yml
+        orb-ref: ayte/jabba@$CIRCLE_TAG
+        publish-token-variable: CIRCLECI_TOKEN
+        requires:
+        - verify
+
