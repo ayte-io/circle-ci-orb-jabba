@@ -78,16 +78,9 @@ orbs:
             description: Version to set as current
             type: string
         steps:
-        - setup
-        - run:
-            command: |
-              if [[ ! -z "<< parameters.home >>" ]]; then
-                export JABBA_HOME="<< parameters.home >>"
-              fi
-              if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
-                jabba install "<< parameters.version >>"
-              fi
-            name: 'Jabba: Ensure JDK << parameters.version >> is installed'
+        - install:
+            home: << parameters.home >>
+            version: << parameters.version >>
         - run:
             command: |
               if [[ ! -z "<< parameters.home >>" ]]; then

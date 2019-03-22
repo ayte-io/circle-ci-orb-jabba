@@ -64,16 +64,9 @@ commands:
         type: string
         default: ''
     steps:
-      - setup
-      - run:
-          name: 'Jabba: Ensure JDK << parameters.version >> is installed'
-          command: |
-            if [[ ! -z "<< parameters.home >>" ]]; then
-              export JABBA_HOME="<< parameters.home >>"
-            fi
-            if [[ ! $(jabba ls | grep -q "<< parameters.version >>") ]]; then
-              jabba install "<< parameters.version >>"
-            fi
+      - install:
+          version: << parameters.version >>
+          home: << parameters.home >>
       - run:
           name: 'Jabba: Set current JDK to << parameters.version >>'
           command: |
