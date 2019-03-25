@@ -18,6 +18,10 @@ commands:
         description: Jabba home directory
         type: string
         default: .jabba
+      when:
+        description: '`always`, `on_success` or `on_fail`'
+        type: string
+        default: on_success
     steps:
       - run:
           name: 'Jabba: Setup'
@@ -34,6 +38,7 @@ commands:
               fi
               echo 'source "$JABBA_HOME/jabba.sh"' >> "$BASH_ENV"
             fi
+          when: << parameters.when >>
   install:
     description: Installs specific JDK
     parameters:
@@ -44,8 +49,13 @@ commands:
         description: Jabba home directory
         type: string
         default: ''
+      when:
+        description: '`always`, `on_success` or `on_fail`'
+        type: string
+        default: on_success
     steps:
-      - setup
+      - setup:
+          when: << parameters.when >>
       - run:
           name: 'Jabba: Install JDK << parameters.version >>'
           command: |
@@ -53,6 +63,7 @@ commands:
               export JABBA_HOME="<< parameters.home >>"
             fi
             jabba install "<< parameters.version >>"
+          when: << parameters.when >>
   use:
     description: Sets default JDK to specified version, isntalls it if absent
     parameters:
@@ -63,10 +74,15 @@ commands:
         description: Jabba home directory
         type: string
         default: ''
+      when:
+        description: '`always`, `on_success` or `on_fail`'
+        type: string
+        default: on_success
     steps:
       - install:
           version: << parameters.version >>
           home: << parameters.home >>
+          when: << parameters.when >>
       - run:
           name: 'Jabba: Set current JDK to << parameters.version >>'
           command: |
@@ -74,5 +90,6 @@ commands:
               export JABBA_HOME="<< parameters.home >>"
             fi
             jabba alias default "<< parameters.version >>"
+          when: << parameters.when >>
 
 

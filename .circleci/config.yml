@@ -4,19 +4,24 @@ jobs:
     - image: circleci/openjdk
     steps:
     - checkout
-    - jabba/setup
+    - jabba/setup:
+        when: always
     - jabba/install:
         version: openjdk@1.9
+        when: always
     - jabba/install:
         version: openjdk@1.9
+        when: always
     - jabba/use:
         version: openjdk@1.9
+        when: always
     - run:
         command: |
           java -version 2>&1 | grep -i openjdk
           java -version 2>&1 | grep -i 'build 9'
     - jabba/use:
         version: openjdk@1.10
+        when: always
     - run:
         command: |
           java -version 2>&1 | grep -i openjdk
@@ -35,8 +40,13 @@ orbs:
           version:
             description: Version to install
             type: string
+          when:
+            default: on_success
+            description: '`always`, `on_success` or `on_fail`'
+            type: string
         steps:
-        - setup
+        - setup:
+            when: << parameters.when >>
         - run:
             command: |
               if [[ ! -z "<< parameters.home >>" ]]; then
@@ -44,12 +54,17 @@ orbs:
               fi
               jabba install "<< parameters.version >>"
             name: 'Jabba: Install JDK << parameters.version >>'
+            when: << parameters.when >>
       setup:
         description: Installs Jabba
         parameters:
           home:
             default: .jabba
             description: Jabba home directory
+            type: string
+          when:
+            default: on_success
+            description: '`always`, `on_success` or `on_fail`'
             type: string
         steps:
         - run:
@@ -67,6 +82,7 @@ orbs:
                 echo 'source "$JABBA_HOME/jabba.sh"' >> "$BASH_ENV"
               fi
             name: 'Jabba: Setup'
+            when: << parameters.when >>
       use:
         description: Sets default JDK to specified version, isntalls it if absent
         parameters:
@@ -77,10 +93,15 @@ orbs:
           version:
             description: Version to set as current
             type: string
+          when:
+            default: on_success
+            description: '`always`, `on_success` or `on_fail`'
+            type: string
         steps:
         - install:
             home: << parameters.home >>
             version: << parameters.version >>
+            when: << parameters.when >>
         - run:
             command: |
               if [[ ! -z "<< parameters.home >>" ]]; then
@@ -88,6 +109,7 @@ orbs:
               fi
               jabba alias default "<< parameters.version >>"
             name: 'Jabba: Set current JDK to << parameters.version >>'
+            when: << parameters.when >>
     description: |
       This orb controls [Jabba](https://github.com/shyiko/jabba) JVM version
       manager, providing support for several JDKs in one job.

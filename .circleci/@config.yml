@@ -7,19 +7,24 @@ jobs:
       - image: circleci/openjdk
     steps:
       - checkout
-      - jabba/setup
+      - jabba/setup:
+          when: always
       - jabba/install:
           version: openjdk@1.9
+          when: always
       - jabba/install:
           version: openjdk@1.9
+          when: always
       - jabba/use:
           version: openjdk@1.9
+          when: always
       - run:
           command: |
             java -version 2>&1 | grep -i openjdk
             java -version 2>&1 | grep -i 'build 9'
       - jabba/use:
           version: openjdk@1.10
+          when: always
       - run:
           command: |
             java -version 2>&1 | grep -i openjdk
